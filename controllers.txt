@@ -1,0 +1,848 @@
+
+using dotnetapp.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication2.Models;
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/users/")]
+    public class UserController : ControllerBase
+    {
+        private readonly UserService _userService;
+
+        public UserController(UserService userService)
+        {
+            _userService = userService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+        {
+            try
+            {
+                IEnumerable<User> users = await _userService.GetAllUsers();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+        [HttpGet("id/{userId}")]
+        public async Task<ActionResult<IEnumerable<User>>> GetUserById(int userId)
+        {
+            try
+            {
+                User user = await _userService.GetUserById(userId);
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+        [HttpGet("email/{email}")]
+        public async Task<ActionResult<IEnumerable<User>>> GetUserByEmail(string email)
+        {
+            try
+            {
+                User user = await _userService.GetUserByEmail(email);
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+        [HttpPut("{userId}")]
+        public async Task<ActionResult> UpdateUser(int userId, User user)
+        {
+            try
+            {
+                bool isUpdated = await _userService.UpdateUser(userId, user);
+
+                if (isUpdated)
+                {
+                    return Ok(new { result = "User updated successfully" });
+                }
+
+                return NotFound(new { result = "could not update user" });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{userId}")]
+        public async Task<ActionResult> DeleteUserById(int userId)
+        {
+            try
+            {
+                bool isDeleted = await _userService.DeleteUserById(userId);
+
+                if (isDeleted)
+                {
+                    return Ok(new { result = "User deleted successfully" });
+                }
+                else
+                {
+                    return NotFound(new { result = "could not delete user" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{email}")]
+        public async Task<ActionResult> DeleteUserByEmail(string email)
+        {
+            try
+            {
+                bool isDeleted = await _userService.DeleteUserByEmail(email);
+
+                if (isDeleted)
+                {
+                    return Ok(new { result = "User deleted successfully" });
+                }
+                else
+                {
+                    return NotFound(new { result = "could not delete user" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using WebApplication2.Models;
+using WebApplication2.Services;
+
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/properties")]
+    public class PropertyController : ControllerBase
+    {
+        private readonly PropertyService _propertyService;
+        private readonly ILogger<PropertyController> _logger;
+
+        public PropertyController(PropertyService propertyService, ILogger<PropertyController> logger)
+        {
+            _propertyService = propertyService;
+            _logger = logger;
+        }
+
+        /*Method for retrieving all properties
+        can be accessed by Admin and User*/
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<Property>>> getAllPropertiesByUserId(int userId)
+        {
+            try
+            {
+                /*
+                Retrieve all properties from the service.
+                If successful, return the list of properties
+                */
+                var properties = await this._propertyService.GetAllPropertiesByUserId(userId);
+                return Ok(properties);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Fetching properties!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Property>>> getAllProperties()
+        {
+            try
+            {
+                /*
+                Retrieve all properties from the service.
+                If successful, return the list of properties
+                */
+                var properties = await this._propertyService.GetAllProperties();
+                return Ok(properties);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Fetching properties!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+        /*Method for retrieving a specific property by ID
+        can be accessed by Admin and User*/
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("{propertyId}")]
+        public async Task<ActionResult<IEnumerable<Property>>> GetPropertyById(int propertyId)
+        {
+            try
+            {
+                /*
+               Retrieve the property by ID from the service.
+               If the property is found, return it
+               Else return NotFound
+               */
+                var p = await this._propertyService.GetPropertyById(propertyId);
+                if (p == null)
+                {
+                    return NotFound(new { res = "Property Not found" });
+                }
+                return Ok(p);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Fetching property!", ex);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /*Method for adding a new property
+        can be accessed only by User*/
+
+        [Authorize(Roles = "User")]
+        [HttpPost]
+        public async Task<ActionResult> AddProperty([FromBody] Property property)
+        {
+            try
+            {
+                /*
+                Add the new property via the service.
+                If successful, return a success message
+                */
+                await this._propertyService.AddProperty(property);
+                return Ok(new { res = "Property added successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Adding property!", ex);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+        /*Method for updating an existing property by propertyId
+       can be accessed by User and Admin*/
+
+        [Authorize(Roles = "User,Admin")]
+        [HttpPut("{propertyId}")]
+        public async Task<ActionResult> UpdateProperty(int propertyId, [FromBody] Property property)
+        {
+            try
+            {
+                /*
+                Retrieve the existing property by ID from the service.
+                If the property is found, update it
+                Else return NotFound
+                */
+                var propertyfound = await this._propertyService.GetPropertyById(propertyId);
+                if (propertyfound != null)
+                {
+                    var updatedProperty = await this._propertyService.UpdateProperty(propertyId, property);
+                    return Ok(new { res = "Property updated successfully" });
+                }
+                else
+                {
+                    return NotFound(new { res = "Property not Found" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Updating property!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+
+        }
+
+        /*Method for deleting a property by proprtyId
+        can be accessed only by User*/
+
+        [Authorize(Roles = "User")]
+        [HttpDelete("{propertyId}")]
+        public async Task<ActionResult> DeleteProperty(int propertyId)
+        {
+            try
+            {
+                /*
+               Check if the property object to be deleted is available.
+               If available, delete the property
+               Else return NotFound
+               */
+                bool result = await this._propertyService.DeleteProperty(propertyId);
+                if (result)
+                {
+                    return Ok(new { res = "Property deleted successfully" });
+                }
+                else
+                {
+                    return NotFound(new { res = "Property not Found" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Deleting property!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+        // [Authorize(Roles="User")]
+        // [HttpGet("property/{userId}")]
+        // public async Task<ActionResult> GetPropertiesByUserId(int userId)
+        // {
+        //     try
+        //     {
+        //         var properties=_propertyService.GetAllProperties(userId);
+        //         return Ok(properties);
+        //     }
+        //     catch(Exception ex){
+        //         _logger.LogError("Error Fetching properties!", ex);
+        //         return StatusCode(500,$"Internal Server Error: {ex.Message}");
+        //     }
+        // }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using WebApplication2.Models;
+using dotnetapp.Services;
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/landrequirements")]
+    public class LandRequirementController : ControllerBase
+    {
+        private readonly LandRequirementService _landrequirementService;
+        private readonly ILogger<LandRequirementController> _logger;
+
+        public LandRequirementController(LandRequirementService landrequirementService, ILogger<LandRequirementController> logger)
+        {
+            _landrequirementService = landrequirementService;
+            _logger = logger;
+        }
+
+        /*Method for retrieving all land requirements
+        can be accessed by Admin and User*/
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<LandRequirement>>> GetAllLandRequirements()
+        {
+            try
+            {
+                /*
+               Retrieve all land requirements from the service.
+               If successful, return the list of land requirements
+               */
+                var landRequirements = await this._landrequirementService.GetAllLandRequirements();
+                _logger.LogInformation("Land Requirements Fetched successfully!");
+                return Ok(landRequirements);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Fetching land requirements!", ex);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /*Method for retrieving a specific land requirement by ID
+       can be accessed by Admin and User*/
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("{landRequirementId}")]
+        public async Task<ActionResult<IEnumerable<Feedback>>> GetLandRequirementById(int landRequirementId)
+        {
+            try
+            {
+                /*
+               Retrieve the land requirement by ID from the service.
+               If the land requirement is found, return it
+               Else return NotFound
+               */
+                var landRequirement = await this._landrequirementService.GetLandRequirementById(landRequirementId);
+                if (landRequirement == null)
+                {
+                    return NotFound(new { res = "Land Requirement not found" });
+                }
+                _logger.LogInformation("Land Requirement Fetched successfully!");
+                return Ok(landRequirement);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Fetching land requirement!", ex);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /*Method for adding a new land requirement
+        can be accessed only by Admin*/
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<ActionResult> AddLandRequirement([FromBody] LandRequirement landRequirement)
+        {
+            try
+            {
+
+                /*
+                Add the new land requirement via the service.
+                If successful, return a success message
+                */
+                await this._landrequirementService.AddLandRequirement(landRequirement);
+
+
+                _logger.LogInformation("Land Requirements Added successfully!");
+
+                return Ok(new { res = "Land Requirement added successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Adding land requirements!", ex);
+                return StatusCode(409, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+        /*Method for updating an existing land requirement
+        can be accessed by User and Admin*/
+        [Authorize(Roles = "User,Admin")]
+        [HttpPut("{landRequirementId}")]
+        public async Task<ActionResult> UpdateProperty(int landRequirementId, [FromBody] LandRequirement landRequirement)
+        {
+            try
+            {
+                /*
+                Retrieve the existing land requirement by ID from the service.
+                If the land requirement is found, update it
+                Else return NotFound
+                */
+                var landRequirementfound = await this._landrequirementService.GetLandRequirementById(landRequirementId);
+                if (landRequirementfound != null)
+                {
+                    var updatedLandRequirement = await this._landrequirementService.UpdateLandRequirement(landRequirementId, landRequirement);
+                    _logger.LogInformation("Land Requirement Updated successfully!");
+
+
+                    return Ok(new { mes = "Land Requirement updated successfully" });
+
+                }
+                else
+                {
+                    return NotFound(new { res = "Land Requirement not found" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Updating land requirements!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+        /*Method for deleting landRequirement
+        can be accessed only by Admin*/
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{landRequirementId}")]
+        public async Task<ActionResult> DeleteLandRequirement(int landRequirementId)
+        {
+            try
+            {
+                /*
+                check if the land requirement object to be deleted is available.
+                If available,delete the land requirement
+
+                Else return NotFound
+                */
+                bool result = await this._landrequirementService.DeleteLandRequirement(landRequirementId);
+                if (result)
+                {
+                    _logger.LogInformation("Land Requirement Deleted successfully!");
+                    return Ok(new { res = "Land Requirement deleted successfully" });
+                }
+                else
+                {
+                    return NotFound(new { res = "Land Requirement not found" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Deleting land requirements!", ex);
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+using System;
+using System.IO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
+using WebApplication2.Models;
+using dotnetapp.Services;
+
+
+
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/feedback")]
+    public class FeedbackController : ControllerBase
+    {
+
+        private readonly FeedbackService _feedbackService;
+        private readonly ILogger<FeedbackController> _logger;
+
+
+        public FeedbackController(FeedbackService feedbackService, ILogger<FeedbackController> logger)
+        {
+            _feedbackService = feedbackService;
+            _logger = logger;
+        }
+
+        /* 
+        Retrieve all feedbacks from the feedback service
+        Return the list of feedbacks
+        */
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet]
+        /*Method for getting all the feedbacks
+        User and Admin can access*/
+
+        public async Task<ActionResult<IEnumerable<Feedback>>> GetAllFeedbacks()
+        {
+
+            try
+            {
+                var feed = await this._feedbackService.GetAllFeedbacks();
+                _logger.LogInformation("Feedbacks Fetched successfully!");
+                return Ok(feed);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching feedbacks!", ex);
+                // Handle any exceptions that occur during retrieval
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+
+
+        //  Method for getting the feedback on the basis of userId
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<Feedback>>> GetFeedbacksByUserId(int userId)
+        {
+            try
+            {
+                /*Return feedback for the user if found
+                Return not found response if no feedbacks were found for this user*/
+                /* 
+                Return feedback for the user if found
+                Return not found response if no feedbacks were found for this user
+                */
+                var feed = await this._feedbackService.GetFeedbacksByUserId(userId);
+                if (feed == null)
+                {
+                    _logger.LogWarning("No feedbacks were found for this user!");
+                    return NotFound(new { res = "No feedbacks were found for this user" });
+                }
+                _logger.LogInformation("Feedback Fetched successfully!");
+                return Ok(feed);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching feedback!", ex);
+
+                // Handle any exceptions that occur during retrieval
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+
+        }
+
+        /*Method for adding the feedback 
+        Can be accessed by only User*/
+
+
+        [Authorize(Roles = "User")]
+        [HttpPost]
+        public async Task<ActionResult> AddFeedback([FromBody] Feedback feedback)
+        {
+            try
+            {
+
+                /* Add new feedback using the feedback service
+                 Return success message if feedback is added successfully
+                */
+                await this._feedbackService.AddFeedback(feedback);
+                _logger.LogInformation("Feedback added successfully!");
+                return Ok(new { res = "Feedback added successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Adding feedback!", ex);
+
+                // Handle any exceptions that occur during feedback addition
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+
+
+
+        // Delete feedback by feedbackId using the feedback service
+        [Authorize(Roles = "User")]
+        [HttpDelete("{feedbackId}")]
+        /*Method for deleting the feedback based on the basis of feedbackId
+        Can be accessed by only User*/
+        public async Task<ActionResult> DeleteFeedback(int feedbackId)
+        {
+            try
+            {
+                /* Return success message if feedback is deleted successfully
+                Return not found response if no feedback is found for the given feedbackId*/
+
+                bool result = await this._feedbackService.DeleteFeedback(feedbackId);
+                if (result)
+                {
+                    _logger.LogInformation("Feedback deleted successfully!");
+                    return Ok(new { res = "Feedback deleted successfully" });
+                }
+                else
+                {
+                    return NotFound(new { res = "Cannot find any feedback" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Deleting feedback!", ex);
+
+                // Handle any exceptions that occur during feedback deletion
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+using dotnetapp.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using WebApplication2.Models;
+using WebApplication2.Services;
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/")]
+    public class AuthenticationController : ControllerBase
+    {
+
+        private readonly IAuthService _authService;
+        private readonly ILogger<AuthenticationController> _logger;
+
+
+        public AuthenticationController(IAuthService authService, ILogger<AuthenticationController> logger)
+        {
+            this._authService = authService;
+            this._logger = logger;
+        }
+
+
+        // Attempt to login with provided model credentials
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginModel model)
+        {
+            try
+            {
+                /*
+                Check if login was unsuccessful
+         Return bad request with error message if login failed
+         Return success status and token if login was successful
+         */
+                var (status, message) = await _authService.Login(model);
+
+                if (status == 0)
+                {
+                    return BadRequest(message);
+                }
+
+                return Ok(
+                    new
+                    {
+                        Status = "Success",
+                        token = message
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error in Login!", ex);
+
+                // Handle any exceptions that occur during login
+                return StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        new { Status = "Error", Message = ex.Message }
+                    );
+            }
+        }
+
+
+        //Attempt to register with provided model and user role
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(User model)
+        {
+            try
+            {
+
+                /*
+                Check if registration was unsuccessful
+       Return bad request with error message if registration failed
+       Return success status and message if registration was successful
+       */
+                var (status, message) = await _authService.Registration(model, model.UserRole);
+
+                if (status == 0)
+                {
+                    return BadRequest(message);
+                }
+
+                return Ok(new { msg = message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error in Register!", ex);
+
+                // Handle any exceptions that occur during registration
+                return StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        new { Status = "Error", Message = ex.Message }
+                    );
+            }
+        }
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

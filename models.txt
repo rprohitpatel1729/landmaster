@@ -1,0 +1,210 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
+
+namespace WebApplication2.Models
+{
+    public class ApplicationUser : IdentityUser
+    {
+        [MaxLength(30)]
+        public string? Name { get; set; }
+    }
+}
+
+
+using System.Text.Json.Serialization;
+using WebApplication2.Models;
+
+namespace WebApplication2.Models
+{
+    public class Feedback
+    {
+
+        public int FeedbackId { get; set; }
+
+        public int UserId { get; set; }
+
+        // [ForeignKey("UserId")]
+        [JsonIgnore]
+        public User? User { get; set; }
+
+        public string FeedbackText { get; set; }
+        [JsonIgnore]
+        public DateTime Date { get; set; }
+
+    }
+
+}
+
+
+
+
+
+
+using System;
+
+namespace WebApplication2.Models
+{
+    public class LandRequirement
+    {
+        public int LandRequirementId { get; set; }
+
+        public string Title { get; set; }
+
+        public string Description { get; set; }
+
+        public string Location { get; set; }
+
+        public double AreaSize { get; set; }
+
+        public DateTime PostedDate { get; set; }
+
+        public string Status { get; set; }
+    }
+}
+
+
+
+
+
+
+
+using System;
+
+namespace WebApplication2.Models
+{
+
+    public class LoginModel
+    {
+        public string Email { get; set; }
+
+        public string Password { get; set; }
+
+    }
+
+}
+
+
+
+
+
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using WebApplication2.Models;
+
+
+namespace WebApplication2.Models
+{
+    public class Property
+    {
+        public int PropertyId { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Location { get; set; }
+        public double AreaSize { get; set; }
+        public decimal Price { get; set; }
+        public DateTime PostedDate { get; set; }
+        public string Status { get; set; }
+        public int NumberOfOwners { get; set; }
+        public bool IsDtcpApproved { get; set; }
+        public int? UserId { get; set; }
+        public User? User { get; set; }
+
+    }
+
+}
+
+
+
+
+
+
+
+
+using System.Collections;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+namespace WebApplication2.Models
+{
+
+    public class User
+    {
+
+        public int UserId { get; set; }
+
+        public string Email { get; set; }
+
+        public string Password { get; set; }
+
+        public string Username { get; set; }
+
+        public string MobileNumber { get; set; }
+        [JsonIgnore]
+        public string UserRole { get; set; }
+        // public ICollection<Feedback> Feedbacks{get;set;}
+        // public ICollection<Property> Properties{get;set;}
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+using System;
+
+namespace WebApplication2.Models
+{
+    public class UserRoles
+    {
+        public const string Admin = "Admin";
+        public const string User = "User";
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

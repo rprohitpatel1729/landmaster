@@ -1,0 +1,701 @@
+
+using Microsoft.EntityFrameworkCore;
+using WebApplication2.Data;
+using WebApplication2.Models;
+
+namespace dotnetapp.Services
+{
+    public class UserService
+    {
+        private readonly ApplicationDbContext _context;
+
+        public UserService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<IEnumerable<User>> GetAllUsers()
+        {
+            IEnumerable<User> users = await _context.Users.ToListAsync();
+
+            foreach (User user in users)
+            {
+                user.Password = "";
+            }
+
+            return users;
+        }
+
+        public async Task<User> GetUserById(int userId)
+        {
+            User user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            user.Password = "";
+
+            return user;
+        }
+
+        public async Task<User> GetUserByEmail(string email)
+        {
+            User user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            user.Password = "";
+
+            return user;
+        }
+
+        public async Task<bool> UpdateUser(int userId, User user)
+        {
+            User dbUser = await _context.Users.FindAsync(userId);
+
+            if (dbUser != null)
+            {
+                dbUser.MobileNumber = user.MobileNumber;
+                dbUser.UserRole = user.UserRole;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> DeleteUserById(int userId)
+        {
+            User dbUser = await _context.Users.FindAsync(userId);
+
+            if (dbUser != null)
+            {
+                _context.Users.Remove(dbUser);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> DeleteUserByEmail(string email)
+        {
+            User dbUser = await _context.Users.FindAsync(email);
+
+            if (dbUser != null)
+            {
+                _context.Users.Remove(dbUser);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+using System;
+using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+using System.Threading.Tasks;
+using WebApplication2.Data;
+using WebApplication2.Models;
+namespace WebApplication2.Services
+
+{
+    // Service class to handle CRUD operations for Property entities
+    public class PropertyService
+    {
+        private ApplicationDbContext _context; // Private field to hold the database context
+
+
+        // Constructor to initialize the database context
+        public PropertyService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        /*GetAllProperties Method
+        Retrieves all properties from the database asynchronously
+        Returns an IEnumerable collection of Property objects*/
+        public async Task<IEnumerable<Property>> GetAllProperties()
+        {
+            // Fetches the list of properties from the database asynchronously
+            IEnumerable<Property> properties = await _context.Properties.ToListAsync();
+            return properties; // Returns the list of properties
+        }
+
+        /* GetPropertyById Method
+        Retrieves a property by its ID from the database asynchronously
+        Returns a single Property object if found, otherwise null */
+        public async Task<Property> GetPropertyById(int propertyId)
+        {
+            // Fetches the property by ID from the database asynchronously
+            Property property = await _context.Properties.FindAsync(propertyId);
+            if (property != null)
+            {
+                return property; // Returns the property if found
+            }
+            return null; // Returns null if property is not found
+        }
+
+        /* AddProperty Method
+        Adds a new property to the database asynchronously
+        Takes a Property object as a parameter */
+        public async Task AddProperty(Property property)
+        {
+            // Adds the property to the database context asynchronously
+            await _context.Properties.AddAsync(property);
+            // Saves the changes to the database asynchronously
+            await _context.SaveChangesAsync();
+        }
+
+        /* UpdateProperty Method
+        Updates an existing property in the database asynchronously
+        Takes the property ID and a Property object as parameters
+        Returns a boolean indicating success or failure */
+        public async Task<bool> UpdateProperty(int propertyId, Property property)
+        {
+            // Fetches the existing property by ID from the database asynchronously
+            Property oldProperty = await _context.Properties.FindAsync(propertyId);
+            if (oldProperty != null)
+            {
+                // Sets the current values of the old property to the new property values
+                oldProperty.Title = property.Title;
+                oldProperty.Description = property.Description;
+                oldProperty.Location = property.Location;
+                oldProperty.AreaSize = property.AreaSize;
+                oldProperty.Price = property.Price;
+                oldProperty.PostedDate = property.PostedDate;
+                oldProperty.Status = property.Status;
+                oldProperty.NumberOfOwners = property.NumberOfOwners;
+                oldProperty.IsDtcpApproved = property.IsDtcpApproved;
+                // Saves the changes to the database asynchronously
+                await _context.SaveChangesAsync();
+                return true; // Returns true indicating the update was successful
+            }
+            return false; // Returns false if the old property was not found
+        }
+
+        /* DeleteProperty Method
+        Deletes a property from the database asynchronously
+        Takes the property ID as a parameter
+        Returns a boolean indicating success or failure */
+        public async Task<bool> DeleteProperty(int propertyId)
+        {
+            // Fetches the property by ID from the database asynchronously
+            Property property = await _context.Properties.FindAsync(propertyId);
+            if (property != null)
+            {
+                // Removes the property from the database context
+                _context.Properties.Remove(property);
+                // Saves the changes to the database asynchronously
+                await _context.SaveChangesAsync();
+                return true; // Returns true indicating the deletion was successful
+            }
+            return false; // Returns false if the property was not found
+        }
+        public async Task<IEnumerable<Property>> GetAllPropertiesByUserId(int userId)
+        {
+            IEnumerable<Property> properties = await _context.Properties.Where(o => o.UserId == userId).ToListAsync();
+
+            // IEnumerable<Property> properties = await _context.Properties.ToListAsync();
+            return properties;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication2.Data;
+using WebApplication2.Exceptions;
+using WebApplication2.Models;
+
+namespace dotnetapp.Services
+{
+    public class LandRequirementService
+    {
+        private ApplicationDbContext _context;
+
+        /* 
+          Constructor to initialize the database context
+          param context: The ApplicationDbContext instance used to interact with the database
+         */
+        public LandRequirementService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        /* 
+          Retrieves all LandRequirements from the database
+         return A list of all LandRequirement objects from the database
+         */
+        public async Task<IEnumerable<LandRequirement>> GetAllLandRequirements()
+        {
+            IEnumerable<LandRequirement> list = await _context.LandRequirements.ToListAsync();
+            return list;
+        }
+
+        /* 
+          Retrieves a specific LandRequirement by its ID
+          param landRequirementId: The ID of the LandRequirement to retrieve
+          return The LandRequirement object if found, otherwise null
+         */
+        public async Task<LandRequirement> GetLandRequirementById(int landRequirementId)
+        {
+            LandRequirement landRequirement = await _context.LandRequirements.FindAsync(landRequirementId);
+            if (landRequirement != null)
+            {
+                return landRequirement;
+            }
+            return null;
+        }
+
+        /* 
+         Adds a new LandRequirement to the database
+         param landRequirement: The LandRequirement object to add
+         return True if the requirement is successfully added, otherwise an exception is thrown
+         throws RequirementException: If a LandRequirement with the same title already exists
+         */
+        public async Task<bool> AddLandRequirement(LandRequirement landRequirement)
+
+        {
+            LandRequirement land = await _context.LandRequirements.Where(data => data.Title == landRequirement.Title).FirstOrDefaultAsync();
+            if (land != null)
+            {
+                throw new RequirementException("A requirement with the title already exists");
+            }
+            await _context.LandRequirements.AddAsync(landRequirement);
+            await _context.SaveChangesAsync();
+            return true; // Return true if the requirement is successfully added
+        }
+
+        /* 
+          Updates an existing LandRequirement in the database
+         param landRequirementId: The ID of the LandRequirement to update
+         param landRequirement: The updated LandRequirement object
+         return True if the update is successful, otherwise false
+         */
+        public async Task<bool> UpdateLandRequirement(int landRequirementId, LandRequirement landRequirement)
+        {
+            LandRequirement oldlandRequirement = await _context.LandRequirements.FindAsync(landRequirementId);
+            if (oldlandRequirement != null)
+            {
+
+
+                oldlandRequirement.Title = landRequirement.Title;
+                oldlandRequirement.Description = landRequirement.Description;
+                oldlandRequirement.Location = landRequirement.Location;
+                oldlandRequirement.AreaSize = landRequirement.AreaSize;
+                oldlandRequirement.PostedDate = landRequirement.PostedDate;
+                oldlandRequirement.Status = landRequirement.Status;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+
+        /* 
+          Deletes a LandRequirement from the database
+         param landRequirementId: The ID of the LandRequirement to delete
+         return True if the deletion is successful, otherwise false
+         */
+        public async Task<bool> DeleteLandRequirement(int landRequirementId)
+        {
+            LandRequirement landRequirement = await _context.LandRequirements.FindAsync(landRequirementId);
+            if (landRequirement != null)
+            {
+                _context.LandRequirements.Remove(landRequirement);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+using WebApplication2.Models;
+
+namespace WebApplication2.Services
+{
+    public interface IAuthService
+    {
+        Task<(int, string)> Registration(User model, string role);
+
+        Task<(int, string)> Login(LoginModel model);
+    }
+}
+
+
+
+
+
+
+
+
+
+using System;
+using Microsoft.EntityFrameworkCore;
+using WebApplication2.Data;
+using WebApplication2.Models;
+
+namespace dotnetapp.Services
+{
+    public class FeedbackService
+    {
+        private ApplicationDbContext _context;
+        public FeedbackService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<IEnumerable<Feedback>> GetAllFeedbacks()
+        {
+            /* 
+            This method fetches all the feedbacks from the server
+            and returns a list of feedbacks including user details.
+            */
+
+            IEnumerable<Feedback> list = await _context.Feedbacks.Include(feedback => feedback.User).ToListAsync();
+            return list;
+        }
+        public async Task<IEnumerable<Feedback>> GetFeedbacksByUserId(int userId)
+        {
+
+            /*
+            This method fetches feedbacks for a specific user based on user ID.
+            Returns a list of feedbacks if found, otherwise returns null.
+            */
+
+            var feedbacks = await _context.Feedbacks.Where(feed => feed.UserId == userId).ToListAsync();
+            if (feedbacks != null)
+            {
+                return feedbacks;
+            }
+            return null;
+        }
+        public async Task<bool> AddFeedback(Feedback feedback)
+        {
+            /*
+            This method adds a new feedback to the database.
+            Saves changes and returns true upon successful addition.
+            */
+            feedback.User = null;
+            await _context.Feedbacks.AddAsync(feedback);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<bool> DeleteFeedback(int feedbackId)
+        {
+
+            /*
+            This method deletes a feedback from the database based on feedback ID.
+            Returns true if deletion is successful, otherwise returns false.
+            */
+            Feedback feedback = await _context.Feedbacks.FindAsync(feedbackId);
+            if (feedback != null)
+            {
+                _context.Feedbacks.Remove(feedback);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using WebApplication2.Data;
+using WebApplication2.Models;
+using WebApplication2.Services;
+
+namespace WebApplication2.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly ApplicationDbContext _context;
+
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        private readonly SignInManager<ApplicationUser> _signInManager;
+
+        private readonly RoleManager<IdentityRole> _roleManager;
+
+        private readonly IConfiguration _configuration;
+
+        // Constructor to initialize dependencies
+        public AuthService(
+            ApplicationDbContext context,
+            IConfiguration configuartion,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            RoleManager<IdentityRole> roleManager
+        )
+        {
+            this._context = context;
+            this._configuration = configuartion;
+            this._userManager = userManager;
+            this._signInManager = signInManager;
+            this._roleManager = roleManager;
+        }
+
+        /* Method to register a new user with a specified role */
+        // public async Task<(int, string)> Registration(User model, string role)
+        // {
+        //     // Check if the username already exists
+        //     var userNameExists = await _userManager.FindByNameAsync(model.Username);
+
+        //     if (userNameExists != null)
+        //     {
+        //         return (0, "User name already exists");
+        //     }
+
+        //     // Check if the email already exists
+        //     var emailExists = await _userManager.FindByEmailAsync(model.Email);
+
+        //     if (emailExists != null)
+        //     {
+        //         return (0, "A user with this email already exists");
+        //     }
+
+        //     // Create a new ApplicationUser instance
+        //     ApplicationUser applicationUser = new()
+        //     {
+        //         Email = model.Email,
+        //         UserName = model.Username
+        //     };
+
+        //     // Create the user with the specified password
+        //     IdentityResult result = await _userManager.CreateAsync(applicationUser, model.Password);
+
+        //     // Assign the user to the specified role if creation is successful
+        //     if (result.Succeeded && (role == UserRoles.Admin || role == UserRoles.User))
+        //     {
+        //         if (!await _roleManager.RoleExistsAsync(role))
+        //         {
+        //             await _roleManager.CreateAsync(new IdentityRole(role));
+        //         }
+
+        //         await _userManager.AddToRoleAsync(applicationUser, role);
+        //         await _context.Users.AddAsync(model);
+        //         await _context.SaveChangesAsync();
+
+        //         return (1, "User Created Successfully");
+        //     }
+
+        //     return (0, "Failed to register user, please check user details");
+        // }
+
+        public async Task<(int, string)> Registration(User model, string role)
+        {
+            var userNameExists = await _userManager.FindByNameAsync(model.Username);
+
+            if (userNameExists != null)
+            {
+                return (0, "User name already exists");
+            }
+
+            var emailExists = await _userManager.FindByEmailAsync(model.Email);
+
+            if (emailExists != null)
+            {
+                return (0, "A user with this email already exists");
+            }
+
+            ApplicationUser applicationUser = new()
+            {
+                Email = model.Email,
+                UserName = model.Username
+            };
+
+            IdentityResult result = await _userManager.CreateAsync(applicationUser, model.Password);
+
+            if (result.Succeeded)
+            {
+                if (role == UserRoles.Admin)
+                {
+                    // Check if user is allowed to be a Program Managerdrsftcqq
+                    bool isApprovedForAdmin = CheckIfUserIsApprovedForAdmin(model);
+
+                    if (!isApprovedForAdmin)
+                    {
+                        return (0, "User is not approved to become an Admin");
+                    }
+                }
+
+                if (role == UserRoles.Admin || role == UserRoles.User)
+                {
+                    if (!await _roleManager.RoleExistsAsync(role))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(role));
+                    }
+
+                    await _userManager.AddToRoleAsync(applicationUser, role);
+                    await _context.Users.AddAsync(model);
+                    await _context.SaveChangesAsync();
+
+                    return (1, "User Created Successfully");
+                }
+            }
+
+            return (0, "Failed to register user, please check user details");
+        }
+
+        private bool CheckIfUserIsApprovedForAdmin(User model)
+        {
+            List<string> approvedEmails = new List<string> { "palak@admin.com", "rohit@admin.com", "nischal@admin.com", "saloni@admin.com", "jai@admin.com", "pratik@admin.com" };
+
+            return approvedEmails.Contains(model.Email);
+        }
+
+        // Method to log in a user and generate a JWT token
+        public async Task<(int, string)> Login(LoginModel model)
+        {
+            // Find the user by email
+            ApplicationUser savedUser = await _userManager.FindByEmailAsync(model.Email);
+            if (savedUser == null)
+            {
+                return (0, "Invalid email");
+            }
+
+            // Attempt to sign in the user with the specified password
+            var result = await _signInManager.PasswordSignInAsync(savedUser.UserName, model.Password, false, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                //Retreiving User from Db to save UserId in Claims
+                var customUser = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+
+                IList<string> roles = await _userManager.GetRolesAsync(savedUser);
+
+                List<Claim> claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, savedUser.UserName),
+                    new Claim(ClaimTypes.Email, savedUser.Email),
+                    //Saving UserId in token
+                    new Claim(ClaimTypes.NameIdentifier, customUser?.UserId.ToString()),
+                    new Claim(ClaimTypes.Role, roles.FirstOrDefault("User"))
+                };
+
+                // Generate the JWT token
+                string token = GenerateJwtToken(claims);
+
+                return (1, token);
+            }
+
+            return (0, "Invalid password");
+        }
+
+        // Method to generate a JWT token with the specified claims
+        private string GenerateJwtToken(List<Claim> claims)
+        {
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+
+            // Define the token descriptor with claims, expiration, issuer, audience, and signing credentials
+            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddHours(3),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"],
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            // Create the token
+            SecurityToken generatedToken = tokenHandler.CreateToken(tokenDescriptor);
+
+            // Write the token to a string
+            return tokenHandler.WriteToken(generatedToken);
+        }
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
